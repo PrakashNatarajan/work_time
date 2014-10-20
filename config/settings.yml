@@ -1,0 +1,4 @@
+app_title:
+  default: Netserv Project Tracker
+mail_from:
+  default: redmine@netserv.com

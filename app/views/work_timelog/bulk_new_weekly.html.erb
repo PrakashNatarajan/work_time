@@ -1,0 +1,116 @@
+<h2><%= l(:label_bulk_new_time_entries_weekly) %></h2>
+<table>
+  <tr>
+    <td></td>
+    <td>
+      <h3>
+        <%=link_to("Previous week", "#{bulk_time_entries_weekly_path}?date=#{@previous.strftime("%Y-%m-%d")}")%>
+      </h3>
+    </td>
+    <td></td><td></td><td></td><td></td><td></td><td></td>
+    <td>
+      <h3>
+        <%=link_to("Next week", "#{bulk_time_entries_weekly_path}?date=#{@next_day.strftime("%Y-%m-%d")}") if next_week_day?%>
+      </h3>
+    </td>
+    <td></td>
+    </tr>
+  <%=error_messages_for_timelog(@time_entries.flatten.uniq) unless @time_entries.blank?%>
+  <%= form_tag(bulk_create_work_timelog_index_path, :id => 'bulk_new_form') do %>
+      <%= hidden_field_tag "time_entries_weekly", "true"%>
+      <%= hidden_field_tag "date", "#{params[:date]}" %>
+      <tr class="box tabular">
+        <th>Project Name</th>
+        <th></th>
+        <%@week_days.each do |day|%>
+            <%if next_week_day?(day)%>
+                <th><%=day.strftime("%A")%><br><%=day.strftime("%b %d %Y")%></th>
+            <%end%>
+        <%end%>
+      </tr>
+      <tr class="box tabular">
+        <th></th>
+        <th>Tasks</th>
+        <%@week_days.each do |day|%>
+            <%if next_week_day?(day)%>
+                <th>Hours & Activity</th>
+            <%end%>
+        <%end%>
+      </tr>
+      <%@projects.uniq.each_with_index do |project, index|%>
+        <%if timelog_project_issue?(project)%>
+          <tr class="box tabular">
+            <th><%=link_to(project.name, "javascript:void(0);",  :id=>"projectid#{project.id}")%></th>
+          </tr>
+          <%issues = project.issues.uniq%>
+          <%issues.each_with_index do |issue, index|%>
+              <%if timelog_project_issue?(issue)%>
+              <%issue_id = issue.id + index%>
+              <tr class="box tabular issueid<%=project.id%>">
+                <td></td>
+                <td>
+                  <%= link_to(issue.subject.truncate(60), issue_path(issue)) %>
+                </td>
+                <%@week_days.each_with_index do |day, index|%>
+                  <%if (timelog_project_issue?(issue, day) and next_week_day?(day))%>
+                    <td>
+                      <%= text_field_tag "time_entry[#{issue_id}][#{index}][hours]", "", :size =>3 %>
+                      <%= hidden_field_tag "time_entry[#{issue_id}][#{index}][project_id]", "#{project.id}" %>
+                      <%= hidden_field_tag "time_entry[#{issue_id}][#{index}][issue_id]", "#{issue.id}" %>
+                      <%= hidden_field_tag "time_entry[#{issue_id}][#{index}][user_id]", "#{@user.id}" %>
+                      <%= hidden_field_tag "time_entry[#{issue_id}][#{index}][spent_on]", "#{day}"%>
+                      <br/>
+                      <%= select_tag("time_entry[#{issue_id}][#{index}][activity_id]", content_tag('option', l(:label_no_change_option), :value => '') + options_from_collection_for_select(@available_activities, :id, :name)) if @available_activities.any? %>
+                    </td>
+                  <%elsif next_week_day?(day)%>
+                    <td></td>
+                  <%end%>
+                <%end%>
+              </tr>
+              <%time_entries = @time_entries.by_issue(issue)%>
+              <%if !time_entries.blank?%>
+              <tr class="box tabular issueid<%=project.id%>">
+                <td></td>
+                <td>Timelog<br/>history</td>
+                <%@week_days.each_with_index do |day, index|%>
+                   <%time_entries = time_entries.by_spent(day)%>
+                   <%if !time_entries.blank?%>
+                      <td>
+                        <%time_entries.each do |entry|%>
+                           <%= "#{entry.hours} #{entry.activity.name}"%>
+                             <br/>
+                           <%= link_to("Edit", edit_time_entry_path(entry), :title => l(:button_edit))%>
+                              <%= link_to("Delete", "#{time_entry_path(entry)}?back_url=#{request.fullpath}", :data => {:confirm => l(:text_are_you_sure)}, :method => :delete, :title => l(:button_delete))%>
+                              <br/>
+                        <%end%>
+                      </td>
+                   <%elsif next_week_day?(day)%>
+                        <td></td>
+                   <%end%>
+                <%end%>
+              </tr>
+              <%end%>
+              <%end%>
+          <%end%>
+        <%end%>
+      <%end%>
+      <tr>
+        <td>
+          <%= submit_tag l(:button_submit) %>
+        </td>
+      </tr>
+  <% end %>
+</table>
+
+<%content_for :bulk_time_entries_weekly do %>
+    <%= javascript_tag defer: 'defer' do -%>
+        <%@projects.uniq.each do |project|%>
+            <%if timelog_project_issue?(project)%>
+                $("#projectid<%=project.id%>").click(function() {
+                    $(".issueid<%=project.id%>").toggle( "slow", function() {
+                    });
+                });
+            <%end%>
+        <%end%>
+    <% end -%>
+<%end%>

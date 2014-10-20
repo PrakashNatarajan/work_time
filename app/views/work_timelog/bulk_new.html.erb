@@ -1,0 +1,51 @@
+<h2><%= l(:label_bulk_new_time_entries) %></h2>
+<table>
+  <%=error_messages_for_timelog(@time_entries.flatten.uniq) unless @time_entries.blank?%>
+  <%= form_tag(bulk_create_work_timelog_index_path, :id => 'bulk_new_form') do %>
+      <%= hidden_field_tag "date", "#{params[:date]}" %>
+      <%index = 1%>
+      <tr class="box tabular">
+        <th>Project Name</th><th>Tasks</th><th>Hours</th><th>Date</th><th>Activity</th>
+      </tr>
+    <%@projects.uniq.each do |project|%>
+          <tr class="box tabular">
+            <th><%=project.name%></th>
+          </tr>
+       <%project.issues.each do |issue|%>
+          <tr class="box tabular">
+            <td>
+              <%= hidden_field_tag "time_entry[#{index}][project_id]", "#{project.id}" %>
+              <%= hidden_field_tag "time_entry[#{index}][issue_id]", "#{issue.id}" %>
+              <%= hidden_field_tag "time_entry[#{index}][user_id]", "#{@user.id}" %>
+            </td>
+             <td>
+                <%= issue.subject %>
+             </td>
+             <td>
+                <%= text_field_tag "time_entry[#{index}][hours]", "" %>
+             </td>
+             <td>
+                <%= text_field_tag "time_entry[#{index}][spent_on]", "#{@date}", :id=>"time_entry_spent_on_#{index}", :size => 10 %><%= calendar_for("time_entry_spent_on_#{index}") %>
+             </td>
+             <td>
+                <%= select_tag("time_entry[#{index}][activity_id]", content_tag('option', l(:label_no_change_option), :value => '') + options_from_collection_for_select(@available_activities, :id, :name)) if @available_activities.any? %>
+             </td>
+          </tr>
+          <%index += 1%>
+       <%end%>
+    <%end%>
+<!--
+        <%#@custom_fields.each do |custom_field| %>
+            <p><label><%#= h(custom_field.name) %></label> <%#= custom_field_tag_for_bulk_edit('time_entry', custom_field, @time_entries) %></p>
+        <%#end %>
+
+        <%#= call_hook(:view_time_entries_bulk_edit_details_bottom, { :time_entries => @time_entries }) %>
+-->
+
+  <tr>
+    <td>
+      <%= submit_tag l(:button_submit) %>
+    </td>
+  </tr>
+  <% end %>
+</table>
